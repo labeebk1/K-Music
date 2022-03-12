@@ -89,6 +89,7 @@ async def togglePlay(ctx, channel):
     if queue:
         global num_processes
         if num_processes > 1:
+            num_processes -= 1
             return
         try:
             await playSong(ctx, channel)
@@ -118,8 +119,6 @@ async def start(ctx):
         server = ctx.message.guild
         voice_channel = server.voice_client
         await togglePlay(ctx=ctx, channel=voice_channel)
-
-    
 
 @bot.command(name='download', aliases=["d"], help='To download song')
 async def download(ctx,song):
@@ -222,6 +221,7 @@ async def leave(ctx):
 @bot.command(name='stop', help='Stops the song')
 async def stop(ctx):
     voice_client = ctx.message.guild.voice_client
+    import pdb; pdb.set_trace();
     if voice_client.is_playing():
         await voice_client.stop()
     else:
@@ -229,6 +229,7 @@ async def stop(ctx):
     
     global queue
     global num_processes
+    num_processes -= 1
     if queue and num_processes == 0:
         server = ctx.message.guild
         voice_channel = server.voice_client
