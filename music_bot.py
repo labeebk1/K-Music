@@ -221,9 +221,8 @@ async def leave(ctx):
 @bot.command(name='stop', help='Stops the song')
 async def stop(ctx):
     voice_client = ctx.message.guild.voice_client
-    import pdb; pdb.set_trace();
     if voice_client.is_playing():
-        await voice_client.stop()
+        voice_client.stop()
     else:
         await ctx.send("The bot is not playing anything at the moment.")
     
