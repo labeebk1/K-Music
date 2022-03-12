@@ -83,6 +83,8 @@ async def list_queue(ctx):
 
 async def togglePlay(ctx, channel):
     if queue:
+        if num_processes > 1:
+            return
         try:
             await playSong(ctx, channel)
             queue.pop()
@@ -92,6 +94,7 @@ async def togglePlay(ctx, channel):
 
 queue = []
 download_queue = []
+num_processes = 0
 async def addToQueue(ctx, song):
     download_queue.append(song)
     embed = discord.Embed(title=f"Adding Song to Queue", 
@@ -172,6 +175,7 @@ async def play(ctx,url):
     voice_channel = server.voice_client
 
     await addToQueue(ctx=ctx, song=url)
+    num_processes += 1
     await togglePlay(ctx=ctx, channel=voice_channel)
     
 
