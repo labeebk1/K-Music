@@ -145,7 +145,7 @@ async def playSong(ctx, channel):
     async with ctx.typing():
         song = queue[0]
         channel.play(
-            discord.FFmpegPCMAudio(executable="ffmpeg.exe", source=song)
+            discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song) #ffmpeg.exe
         )
 
     embed = discord.Embed(title=f"Now playing", 
