@@ -114,9 +114,10 @@ async def download(ctx,song):
                     value=f"```\n{song}```", inline=False)
     embed.set_thumbnail(url='https://play-lh.googleusercontent.com/WX55VBDZ1CqpNEyWrU1BKgwEnLhr1Z9FpihP_Winh-d3wTlff44Rc_98UXEFUF1ouY4')
     await ctx.send(embed=embed)
-
-    filename = await YTDLSource.from_url(song, loop=bot.loop)
-    download_queue.remove(song)
+    try:
+        filename = await YTDLSource.from_url(song, loop=bot.loop)
+    except Exception:
+        download_queue.remove(song)
 
 @bot.command(name='remove', aliases=["r"], help='Remove from song')
 async def remove(ctx, pos_to_remove):
