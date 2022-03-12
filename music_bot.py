@@ -88,7 +88,6 @@ async def list_queue(ctx):
 async def togglePlay(ctx, channel):
     if queue:
         global num_processes
-        print(num_processes)
         if num_processes > 1:
             return
         try:
@@ -215,6 +214,13 @@ async def stop(ctx):
         await voice_client.stop()
     else:
         await ctx.send("The bot is not playing anything at the moment.")
+    
+    global queue
+    global num_processes
+    if queue and num_processes == 0:
+        server = ctx.message.guild
+        voice_channel = server.voice_client
+        await togglePlay(ctx=ctx, channel=voice_channel)
 
 @bot.event
 async def on_ready():
