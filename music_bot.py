@@ -228,10 +228,10 @@ async def stop(ctx):
     
     global queue
     global num_processes
-    num_processes -= 1
     if queue and num_processes == 0:
         server = ctx.message.guild
         voice_channel = server.voice_client
+        num_processes += 1
         await togglePlay(ctx=ctx, channel=voice_channel)
 
 @bot.event
