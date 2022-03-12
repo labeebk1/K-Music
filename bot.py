@@ -118,6 +118,8 @@ async def download(ctx,song):
         filename = await YTDLSource.from_url(song, loop=bot.loop)
     except Exception:
         download_queue.remove(song)
+    
+    download_queue.remove(song)
 
 @bot.command(name='remove', aliases=["r"], help='Remove from song')
 async def remove(ctx, pos_to_remove):
