@@ -83,6 +83,7 @@ async def list_queue(ctx):
 
 async def togglePlay(ctx, channel):
     if queue:
+        print(num_processes)
         if num_processes > 1:
             return
         try:
