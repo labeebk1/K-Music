@@ -94,6 +94,7 @@ async def togglePlay(ctx, channel):
         try:
             await playSong(ctx, channel)
             queue.pop()
+            num_processes -= 1
         except discord.errors.ClientException:
             await asyncio.sleep(5)
             await togglePlay(ctx, channel)
@@ -228,7 +229,7 @@ async def stop(ctx):
     
     global queue
     global num_processes
-    import pdb; pdb.set_trace();
+    num_processes -= 1
     if queue and num_processes == 0:
         server = ctx.message.guild
         voice_channel = server.voice_client
