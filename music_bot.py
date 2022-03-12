@@ -87,14 +87,12 @@ async def list_queue(ctx):
 
 async def togglePlay(ctx, channel):
     if queue:
-        global num_processes
         if num_processes > 1:
             num_processes -= 1
             return
         try:
             await playSong(ctx, channel)
             queue.pop()
-            num_processes -= 1
         except discord.errors.ClientException:
             await asyncio.sleep(5)
             await togglePlay(ctx, channel)
@@ -160,10 +158,12 @@ async def remove(ctx, pos_to_remove):
 
 async def playSong(ctx, channel):
     async with ctx.typing():
+        global num_processes
         song = queue[0]
         channel.play(
             discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song) #ffmpeg.exe
         )
+        num_processes -= 1
 
     embed = discord.Embed(title=f"Now playing", 
                 color=discord.Color.blue())
