@@ -78,7 +78,7 @@ async def list_queue(ctx):
     embed.add_field(name="Downloading [High Quality]",
                     value=f"```\n{download_list_string}```", inline=False)
 
-    embed.set_thumbnail(url='https://i0.wp.com/thegroovecartel.com/wp-content/uploads/2020/03/music-turntable-light-concert-darkness-neon-dj-stage-performance-guitarist-entertainment-performing-arts-disc-jockey-145322.jpg?fit=1024%2C683&ssl=1')
+    embed.set_thumbnail(url='https://icon-library.com/images/music-icon-folder/music-icon-folder-8.jpg')
     await ctx.send(embed=embed)
 
 async def togglePlay(ctx, channel):
@@ -98,7 +98,7 @@ async def addToQueue(ctx, song):
                 color=discord.Color.green())
     embed.add_field(name="Song",
                     value=f"```\n{song}```", inline=False)
-    embed.set_thumbnail(url='https://p7.hiclipart.com/preview/183/941/279/itunes-apple-macos-os-x-yosemite-cool.jpg')
+    embed.set_thumbnail(url='https://www.galxygirl.com/images/itunes2.jpg')
     await ctx.send(embed=embed)
     filename = await YTDLSource.from_url(song, loop=bot.loop)
     queue.append(filename)
@@ -152,7 +152,7 @@ async def playSong(ctx, channel):
                 color=discord.Color.blue())
     embed.add_field(name="Song",
                     value=f"```\n{song}```", inline=False)
-    embed.set_thumbnail(url='https://digitaldefynd.com/wp-content/uploads/2020/02/Best-dj-course-tutorial-class-certification-training-online-scaled.jpg')
+    embed.set_thumbnail(url='https://image.similarpng.com/very-thumbnail/2020/12/Popular-Music-icon-in-round-black-color-on-transparent-background-PNG.png')
     await ctx.send(embed=embed)
 
 
