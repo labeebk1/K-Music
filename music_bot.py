@@ -78,7 +78,7 @@ async def list_queue(ctx):
     embed.add_field(name="Downloading [High Quality]",
                     value=f"```\n{download_list_string}```", inline=False)
 
-    embed.set_thumbnail(url='https://icon-library.com/images/music-icon-folder/music-icon-folder-8.jpg')
+    embed.set_thumbnail(url='https://img.besthqwallpapers.com/Uploads/7-10-2019/107450/4k-dj-marshmello-violet-brickwall-music-stars-christopher-comstock.jpg')
     await ctx.send(embed=embed)
 
 async def togglePlay(ctx, channel):
@@ -152,7 +152,7 @@ async def playSong(ctx, channel):
                 color=discord.Color.blue())
     embed.add_field(name="Song",
                     value=f"```\n{song}```", inline=False)
-    embed.set_thumbnail(url='https://image.similarpng.com/very-thumbnail/2020/12/Popular-Music-icon-in-round-black-color-on-transparent-background-PNG.png')
+    embed.set_thumbnail(url='https://i.pinimg.com/originals/95/3b/11/953b11a5c98c2971b27106509139610a.png')
     await ctx.send(embed=embed)
 
 
