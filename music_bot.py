@@ -35,6 +35,10 @@ ffmpeg_options = {
     'options': '-vn'
 }
 
+queue = []
+download_queue = []
+num_processes = 0
+
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 class YTDLSource(discord.PCMVolumeTransformer):
@@ -83,6 +87,7 @@ async def list_queue(ctx):
 
 async def togglePlay(ctx, channel):
     if queue:
+        global num_processes
         print(num_processes)
         if num_processes > 1:
             return
@@ -93,9 +98,6 @@ async def togglePlay(ctx, channel):
             await asyncio.sleep(5)
             await togglePlay(ctx, channel)
 
-queue = []
-download_queue = []
-num_processes = 0
 async def addToQueue(ctx, song):
     download_queue.append(song)
     embed = discord.Embed(title=f"Adding Song to Queue", 
@@ -176,6 +178,7 @@ async def play(ctx,url):
     voice_channel = server.voice_client
 
     await addToQueue(ctx=ctx, song=url)
+    global num_processes
     num_processes += 1
     await togglePlay(ctx=ctx, channel=voice_channel)
     
