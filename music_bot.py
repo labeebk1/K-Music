@@ -228,6 +228,7 @@ async def stop(ctx):
     
     global queue
     global num_processes
+    import pdb; pdb.set_trace();
     if queue and num_processes == 0:
         server = ctx.message.guild
         voice_channel = server.voice_client
