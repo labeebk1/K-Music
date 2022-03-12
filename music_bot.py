@@ -87,6 +87,7 @@ async def list_queue(ctx):
 
 async def togglePlay(ctx, channel):
     if queue:
+        global num_processes
         if num_processes > 1:
             num_processes -= 1
             return
