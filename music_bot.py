@@ -109,6 +109,18 @@ async def addToQueue(ctx, song):
     queue.append(filename)
     download_queue.remove(song)
 
+
+@bot.command(name='start', help='Start songs in queuue')
+async def start(ctx):
+    global queue
+    global num_processes
+    if queue and num_processes == 0:
+        server = ctx.message.guild
+        voice_channel = server.voice_client
+        await togglePlay(ctx=ctx, channel=voice_channel)
+
+    
+
 @bot.command(name='download', aliases=["d"], help='To download song')
 async def download(ctx,song):
     download_queue.append(song)
