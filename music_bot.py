@@ -173,6 +173,8 @@ async def playSong(ctx, channel):
             discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song) #ffmpeg.exe
         )
         queue.pop(0)
+        print("popped queue")
+        print(queue)
         await togglePlay(ctx=ctx, channel=channel)
 
     embed = discord.Embed(title=f"Now playing", 
