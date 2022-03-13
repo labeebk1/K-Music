@@ -138,9 +138,11 @@ async def togglePlay(ctx, channel):
     global queue
     if queue:
         global thread_running
+        import pdb; pdb.set_trace();
         if thread_running:
             return
-        await playSong(ctx, channel)
+        else:
+            await playSong(ctx, channel)
     else:
         thread_running = False
 
@@ -203,6 +205,7 @@ async def resume(ctx):
     else:
         await ctx.send("The bot was not playing anything before this. Use play_song command")
     
+
 @bot.command(name='leave', help='To make the bot leave the voice channel')
 async def leave(ctx):
     voice_client = ctx.message.guild.voice_client
@@ -218,6 +221,13 @@ async def skip(ctx):
         voice_client.stop()
     else:
         await ctx.send("The bot is not playing anything at the moment.")
+    
+    global queue
+    queue.pop(0)
+    if queue:
+        server = ctx.message.guild
+        voice_channel = server.voice_client
+        await togglePlay(ctx=ctx, channel=voice_channel)
 
 @bot.event
 async def on_ready():
