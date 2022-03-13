@@ -62,7 +62,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 @bot.command(name='queue', aliases=["q"], help='List Queue')
 async def list_queue(ctx):
-
+    global queue
     embed = discord.Embed(title=f"Queue", 
                 color=discord.Color.random())
 
@@ -151,8 +151,6 @@ async def playSong(ctx, channel):
         channel.play(
             discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song) #ffmpeg.exe
         )
-        print("Reached playSong queue step. Queue is now:")
-        print(queue)
         queue.pop(0)
         if queue:
             await togglePlay(ctx=ctx, channel=channel)
@@ -218,9 +216,6 @@ async def skip(ctx):
         await ctx.send("The bot is not playing anything at the moment.")
     
     global queue
-    queue.pop(0)
-    print("reached skip step. Queue is now: ")
-    print(queue)
     if queue:
         server = ctx.message.guild
         voice_channel = server.voice_client
