@@ -160,11 +160,15 @@ async def remove(ctx, pos_to_remove):
 async def playSong(ctx, channel):
     async with ctx.typing():
         global num_processes
+        global queue
         song = queue[0]
         channel.play(
             discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song) #ffmpeg.exe
         )
         num_processes -= 1
+        if num_processes == 0 and queue:
+            num_processes += 1
+            await togglePlay(ctx=ctx, channel=channel)
 
     embed = discord.Embed(title=f"Now playing", 
                 color=discord.Color.blue())
@@ -191,8 +195,9 @@ async def play(ctx,url):
 
     await addToQueue(ctx=ctx, song=url)
     global num_processes
-    num_processes += 1
-    await togglePlay(ctx=ctx, channel=voice_channel)
+    if num_processes == 0:
+        num_processes += 1
+        await togglePlay(ctx=ctx, channel=voice_channel)
     
 
 @bot.command(name='pause', help='This command pauses the song')
@@ -230,7 +235,6 @@ async def stop(ctx):
     
     global queue
     global num_processes
-    num_processes -= 1
     if queue and num_processes == 0:
         server = ctx.message.guild
         voice_channel = server.voice_client
