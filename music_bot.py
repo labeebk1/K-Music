@@ -167,7 +167,8 @@ async def togglePlay(ctx, channel):
         except discord.errors.ClientException:
             print("Song was already playing. Waiting 5 seconds and trying again..")
             await asyncio.sleep(5)
-            await playSong(ctx, channel)
+            await togglePlay(ctx, channel)
+            return
         
         queue.pop(0)
 
