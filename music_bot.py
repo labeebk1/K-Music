@@ -60,7 +60,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.url = ""
 
     @classmethod
-    async def from_url(cls, url, *, loop=None, stream=False):
+    async def from_url(cls, url, *, loop=None, stream=False, ctx=None):
         loop = loop or asyncio.get_event_loop()
 
         if(is_supported(url)):
@@ -73,6 +73,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         else:
             videosSearch = VideosSearch(url, limit = 1)
             url = videosSearch.result()['result'][0]['link']
+            await ctx.send("Downloading Song: \n" + url)
             data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
             if 'entries' in data:
                 # take first item from a playlist
@@ -115,7 +116,7 @@ async def addToQueue(ctx, song):
                     value=f"```\n{song}```", inline=False)
     embed.set_thumbnail(url='https://www.galxygirl.com/images/itunes2.jpg')
     await ctx.send(embed=embed)
-    filename = await YTDLSource.from_url(song, loop=bot.loop)
+    filename = await YTDLSource.from_url(song, loop=bot.loop, ctx=ctx)
     queue.append(filename)
     download_queue.remove(song)
 
@@ -131,7 +132,7 @@ async def download(ctx,*song):
     embed.set_thumbnail(url='https://play-lh.googleusercontent.com/WX55VBDZ1CqpNEyWrU1BKgwEnLhr1Z9FpihP_Winh-d3wTlff44Rc_98UXEFUF1ouY4')
     await ctx.send(embed=embed)
     try:
-        filename = await YTDLSource.from_url(song, loop=bot.loop)
+        filename = await YTDLSource.from_url(song, loop=bot.loop, ctx=ctx)
         download_queue.remove(song)
     except youtube_dl.utils.DownloadError as error:
         download_queue.remove(song)
