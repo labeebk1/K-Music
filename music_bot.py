@@ -147,9 +147,9 @@ async def togglePlay(ctx, channel):
         thread_running = False
 
 async def playSong(ctx, channel):
-    global thread_running
-    global queue
     async with ctx.typing():
+        global thread_running
+        global queue
         thread_running = True
         song = queue[0]
         channel.play(
