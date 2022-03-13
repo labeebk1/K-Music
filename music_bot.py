@@ -5,6 +5,8 @@ from discord.ext import commands,tasks
 import os
 from dotenv import load_dotenv
 import youtube_dl
+# from sqlalchemy import create_engine
+# from sqlalchemy.orm import Session
 
 
 load_dotenv()
@@ -137,27 +139,20 @@ async def remove(ctx, pos_to_remove):
 async def togglePlay(ctx, channel):
     global queue
     if queue:
-        global thread_running
-        import pdb; pdb.set_trace();
-        if thread_running:
-            return
-        else:
+        try:
             await playSong(ctx, channel)
-    else:
-        thread_running = False
+        except discord.errors.ClientException:
+            pass
 
 async def playSong(ctx, channel):
     async with ctx.typing():
-        global thread_running
         global queue
-        thread_running = True
         song = queue[0]
         channel.play(
             discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song) #ffmpeg.exe
         )
-        thread_running = False
         queue.pop(0)
-        if not thread_running and queue:
+        if queue:
             await togglePlay(ctx=ctx, channel=channel)
 
     embed = discord.Embed(title=f"Now playing", 
@@ -184,9 +179,7 @@ async def play(ctx,url):
     voice_channel = server.voice_client
 
     await addToQueue(ctx=ctx, song=url)
-    global thread_running
-    if not thread_running:
-        await togglePlay(ctx=ctx, channel=voice_channel)
+    await togglePlay(ctx=ctx, channel=voice_channel)
     
 
 @bot.command(name='pause', help='This command pauses the song')
