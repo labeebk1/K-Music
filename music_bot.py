@@ -120,7 +120,8 @@ async def addToQueue(ctx, song):
     download_queue.remove(song)
 
 @bot.command(name='download', aliases=["dl"], help='To download song')
-async def download(ctx,song):
+async def download(ctx,*song):
+    song = ' '.join(song)
     download_queue.append(song)
 
     embed = discord.Embed(title=f"Downloading Song in background...", 
@@ -184,7 +185,10 @@ async def playSong(ctx, channel):
 
 
 @bot.command(name='play', aliases=["p"], help='To play song')
-async def play(ctx,url):
+async def play(ctx,*url):
+
+    url = ' '.join(url)
+
     if not ctx.message.author.voice:
         await ctx.send("{} is not connected to a voice channel".format(ctx.message.author.name))
         return
