@@ -85,19 +85,6 @@ async def list_queue(ctx):
     embed.set_thumbnail(url='https://img.besthqwallpapers.com/Uploads/7-10-2019/107450/4k-dj-marshmello-violet-brickwall-music-stars-christopher-comstock.jpg')
     await ctx.send(embed=embed)
 
-async def togglePlay(ctx, channel):
-    if queue:
-        global num_processes
-        if num_processes > 1:
-            num_processes -= 1
-            return
-        try:
-            await playSong(ctx, channel)
-            queue.pop()
-        except discord.errors.ClientException:
-            await asyncio.sleep(5)
-            await togglePlay(ctx, channel)
-
 async def addToQueue(ctx, song):
     download_queue.append(song)
     embed = discord.Embed(title=f"Adding Song to Queue", 
@@ -109,16 +96,6 @@ async def addToQueue(ctx, song):
     filename = await YTDLSource.from_url(song, loop=bot.loop)
     queue.append(filename)
     download_queue.remove(song)
-
-
-@bot.command(name='start', help='Start songs in queuue')
-async def start(ctx):
-    global queue
-    global num_processes
-    if queue and num_processes == 0:
-        server = ctx.message.guild
-        voice_channel = server.voice_client
-        await togglePlay(ctx=ctx, channel=voice_channel)
 
 @bot.command(name='download', aliases=["d"], help='To download song')
 async def download(ctx,song):
@@ -157,6 +134,19 @@ async def remove(ctx, pos_to_remove):
                         value=f"```{song_to_remove}```", inline=False)
         await ctx.send(embed=embed)
 
+async def togglePlay(ctx, channel):
+    global queue
+    if queue:
+        global num_processes
+        if num_processes > 1:
+            num_processes -= 1
+            return
+        try:
+            await playSong(ctx, channel)
+        except discord.errors.ClientException:
+            await asyncio.sleep(5)
+            await togglePlay(ctx, channel)
+
 async def playSong(ctx, channel):
     async with ctx.typing():
         global num_processes
@@ -165,6 +155,7 @@ async def playSong(ctx, channel):
         channel.play(
             discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song) #ffmpeg.exe
         )
+        queue.pop(0)
         num_processes -= 1
         if num_processes == 0 and queue:
             num_processes += 1
