@@ -133,8 +133,9 @@ async def download(ctx,*song):
     try:
         filename = await YTDLSource.from_url(song, loop=bot.loop)
         download_queue.remove(song)
-    except Exception:
+    except youtube_dl.DownloadError as error:
         download_queue.remove(song)
+        await ctx.send("Failed to download: " + song)
     
 
 @bot.command(name='remove', aliases=["r"], help='Remove from song')
