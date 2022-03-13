@@ -97,7 +97,7 @@ async def addToQueue(ctx, song):
     queue.append(filename)
     download_queue.remove(song)
 
-@bot.command(name='download', aliases=["d"], help='To download song')
+@bot.command(name='download', aliases=["dl"], help='To download song')
 async def download(ctx,song):
     download_queue.append(song)
 
