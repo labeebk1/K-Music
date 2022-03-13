@@ -151,6 +151,8 @@ async def playSong(ctx, channel):
         channel.play(
             discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song) #ffmpeg.exe
         )
+        print("Reached playSong queue step. Queue is now:")
+        print(queue)
         queue.pop(0)
         if queue:
             await togglePlay(ctx=ctx, channel=channel)
@@ -217,6 +219,8 @@ async def skip(ctx):
     
     global queue
     queue.pop(0)
+    print("reached skip step. Queue is now: ")
+    print(queue)
     if queue:
         server = ctx.message.guild
         voice_channel = server.voice_client
