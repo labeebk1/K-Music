@@ -167,8 +167,8 @@ async def togglePlay(ctx, channel):
 
 async def playSong(ctx, channel):
     async with ctx.typing():
-        loop = loop or asyncio.get_event_loop()
         global queue
+        loop = bot.loop or asyncio.get_event_loop()
         song = queue.pop(0)
         channel.play(
             discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song), #ffmpeg.exe
