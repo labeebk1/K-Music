@@ -168,16 +168,17 @@ async def togglePlay(ctx, channel):
             print("Song was already playing. Waiting 5 seconds and trying again..")
             await asyncio.sleep(5)
             await playSong(ctx, channel)
+        
+        queue.pop(0)
 
 async def playSong(ctx, channel):
     async with ctx.typing():
         global queue
-        song = queue.pop(0)
+        song = queue[0]
         print("At PlaySong with song: " + song)
         print(queue)
         channel.play(
             discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song), #ffmpeg.exe
-            after= await togglePlay(ctx=ctx, channel=channel)
         )
 
     embed = discord.Embed(title=f"Now playing", 
