@@ -138,14 +138,13 @@ async def togglePlay(ctx, channel):
     global queue
     if queue:
         global num_processes
-        if num_processes > 1:
+        if num_processes >= 1:
             num_processes -= 1
             return
         try:
             await playSong(ctx, channel)
         except discord.errors.ClientException:
             await asyncio.sleep(5)
-            print(num_processes)
             await togglePlay(ctx, channel)
 
 async def playSong(ctx, channel):
@@ -158,8 +157,8 @@ async def playSong(ctx, channel):
         )
         queue.pop(0)
         num_processes -= 1
-        if num_processes == 0 and queue:
-            num_processes += 1
+        if num_processes <= 0 and queue:
+            num_processes = 1
             await togglePlay(ctx=ctx, channel=channel)
 
     embed = discord.Embed(title=f"Now playing", 
@@ -217,8 +216,8 @@ async def leave(ctx):
     else:
         await ctx.send("The bot is not connected to a voice channel.")
 
-@bot.command(name='stop', help='Stops the song')
-async def stop(ctx):
+@bot.command(name='skip', help='skips the song')
+async def skip(ctx):
     voice_client = ctx.message.guild.voice_client
     if voice_client.is_playing():
         voice_client.stop()
