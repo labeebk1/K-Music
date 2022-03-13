@@ -5,6 +5,8 @@ from discord.ext import commands,tasks
 import os
 from dotenv import load_dotenv
 import youtube_dl
+from youtubesearchpython import VideosSearch
+
 # from sqlalchemy import create_engine
 # from sqlalchemy.orm import Session
 
@@ -43,6 +45,13 @@ thread_running = False
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
+def is_supported(url):
+    extractors = youtube_dl.extractor.gen_extractors()
+    for e in extractors:
+        if e.suitable(url) and e.IE_NAME != 'generic':
+            return True
+    return False
+
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=1):
         super().__init__(source, volume)
@@ -53,12 +62,23 @@ class YTDLSource(discord.PCMVolumeTransformer):
     @classmethod
     async def from_url(cls, url, *, loop=None, stream=False):
         loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
-        if 'entries' in data:
-            # take first item from a playlist
-            data = data['entries'][0]
-        filename = data['title'] if stream else ytdl.prepare_filename(data)
-        return filename
+
+        if(is_supported(url)):
+            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+            if 'entries' in data:
+                # take first item from a playlist
+                data = data['entries'][0]
+            filename = data['title'] if stream else ytdl.prepare_filename(data)
+            return filename
+        else:
+            videosSearch = VideosSearch(url, limit = 1)
+            url = videosSearch.result()['result'][0]['link']
+            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+            if 'entries' in data:
+                # take first item from a playlist
+                data = data['entries'][0]
+            filename = data['title'] if stream else ytdl.prepare_filename(data)
+            return filename
 
 @bot.command(name='queue', aliases=["q"], help='List Queue')
 async def list_queue(ctx):
