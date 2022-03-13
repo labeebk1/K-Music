@@ -145,6 +145,7 @@ async def togglePlay(ctx, channel):
             await playSong(ctx, channel)
         except discord.errors.ClientException:
             await asyncio.sleep(5)
+            print(num_processes)
             await togglePlay(ctx, channel)
 
 async def playSong(ctx, channel):
