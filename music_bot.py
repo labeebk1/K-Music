@@ -159,6 +159,8 @@ async def remove(ctx, pos_to_remove):
 
 async def togglePlay(ctx, channel):
     global queue
+    print("At TogglePlay")
+    print(queue)
     if queue:
         try:
             await playSong(ctx, channel)
@@ -170,6 +172,8 @@ async def playSong(ctx, channel):
         global queue
         loop = bot.loop or asyncio.get_event_loop()
         song = queue.pop(0)
+        print("At PlaySong")
+        print(queue)
         channel.play(
             discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song), #ffmpeg.exe
             after= await togglePlay(ctx=ctx, channel=channel)
