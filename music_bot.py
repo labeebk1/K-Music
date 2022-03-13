@@ -164,7 +164,8 @@ async def togglePlay(ctx, channel):
             await playSong(ctx, channel)
         except discord.errors.ClientException:
             await asyncio.sleep(5)
-            await togglePlay(ctx, channel)
+            loop = bot.loop or asyncio.get_event_loop()
+            loop.create_task(togglePlay(ctx, channel))
             return
         
         queue.pop(0)
