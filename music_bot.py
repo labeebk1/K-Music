@@ -167,15 +167,13 @@ async def togglePlay(ctx, channel):
 
 async def playSong(ctx, channel):
     async with ctx.typing():
+        loop = loop or asyncio.get_event_loop()
         global queue
-        song = queue[0]
+        song = queue.pop(0)
         channel.play(
-            discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song) #ffmpeg.exe
+            discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song), #ffmpeg.exe
+            after= await loop.run_in_executor(None, lambda: togglePlay(ctx=ctx, channel=channel))
         )
-        queue.pop(0)
-        print("popped queue")
-        print(queue)
-        await togglePlay(ctx=ctx, channel=channel)
 
     embed = discord.Embed(title=f"Now playing", 
                 color=discord.Color.blue())
