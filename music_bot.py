@@ -165,7 +165,9 @@ async def togglePlay(ctx, channel):
         try:
             await playSong(ctx, channel)
         except discord.errors.ClientException:
-            print("Song was already playing.")
+            print("Song was already playing. Waiting 5 seconds and trying again..")
+            asyncio.wait(5)
+            await playSong(ctx, channel)
 
 async def playSong(ctx, channel):
     async with ctx.typing():
