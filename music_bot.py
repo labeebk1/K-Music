@@ -162,7 +162,10 @@ async def togglePlay(ctx, channel):
     print("At TogglePlay with queue:")
     print(queue)
     if queue:
-        await playSong(ctx, channel)
+        try:
+            await playSong(ctx, channel)
+        except discord.errors.ClientException:
+            print("Song was already playing.")
 
 async def playSong(ctx, channel):
     async with ctx.typing():
@@ -172,7 +175,7 @@ async def playSong(ctx, channel):
         print(queue)
         channel.play(
             discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song), #ffmpeg.exe
-            after= await togglePlay(ctx=ctx, channel=channel)
+            after= togglePlay(ctx=ctx, channel=channel)
         )
 
     embed = discord.Embed(title=f"Now playing", 
