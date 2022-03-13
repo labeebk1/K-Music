@@ -37,7 +37,7 @@ ffmpeg_options = {
 
 queue = []
 download_queue = []
-num_processes = 0
+thread_running = False
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
@@ -137,28 +137,25 @@ async def remove(ctx, pos_to_remove):
 async def togglePlay(ctx, channel):
     global queue
     if queue:
-        global num_processes
-        if num_processes >= 1:
-            num_processes -= 1
+        global thread_running
+        if thread_running:
             return
-        try:
-            await playSong(ctx, channel)
-        except discord.errors.ClientException:
-            await asyncio.sleep(5)
-            await togglePlay(ctx, channel)
+        await playSong(ctx, channel)
+    else:
+        thread_running = False
 
 async def playSong(ctx, channel):
+    global thread_running
+    global queue
     async with ctx.typing():
-        global num_processes
-        global queue
+        thread_running = True
         song = queue[0]
         channel.play(
             discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=song) #ffmpeg.exe
         )
+        thread_running = False
         queue.pop(0)
-        num_processes -= 1
-        if num_processes <= 0 and queue:
-            num_processes = 1
+        if not thread_running and queue:
             await togglePlay(ctx=ctx, channel=channel)
 
     embed = discord.Embed(title=f"Now playing", 
@@ -185,9 +182,8 @@ async def play(ctx,url):
     voice_channel = server.voice_client
 
     await addToQueue(ctx=ctx, song=url)
-    global num_processes
-    if num_processes == 0:
-        num_processes += 1
+    global thread_running
+    if not thread_running:
         await togglePlay(ctx=ctx, channel=voice_channel)
     
 
@@ -207,7 +203,6 @@ async def resume(ctx):
     else:
         await ctx.send("The bot was not playing anything before this. Use play_song command")
     
-
 @bot.command(name='leave', help='To make the bot leave the voice channel')
 async def leave(ctx):
     voice_client = ctx.message.guild.voice_client
@@ -223,14 +218,6 @@ async def skip(ctx):
         voice_client.stop()
     else:
         await ctx.send("The bot is not playing anything at the moment.")
-    
-    global queue
-    global num_processes
-    if queue and num_processes == 0:
-        server = ctx.message.guild
-        voice_channel = server.voice_client
-        num_processes += 1
-        await togglePlay(ctx=ctx, channel=voice_channel)
 
 @bot.event
 async def on_ready():
