@@ -71,8 +71,13 @@ class MusicDB:
     def add_song(self, song: Song) -> None:
         self.session.add(song)
         self.session.commit()
-    
-    def add_song_to_playlist(self, user: User, song: Song):
+
+    def get_playlist(self, user: User):
+        user_id = user.id
+        user_songs = self.session.query(Song).join(Playlist).filter(Playlist.user_id == user_id).all()
+        return user_songs
+
+    def add_song_to_playlist(self, user: User, song: Song) -> bool:
         playlist = self.session.query(Playlist).filter_by(user_id=user.id, song_id=song.id).first()
         if not playlist:
             playlist = Playlist(
@@ -81,6 +86,8 @@ class MusicDB:
             )
             self.session.add(playlist)
             self.session.commit()
+            return False
+        return True
 
     def add_song_to_song_queue(self, song: Song, user: User) -> None:
         song_item = SongQueue(
@@ -159,6 +166,7 @@ class MusicBot(commands.Bot):
 
     commands_info = {
         'play': 'Play a song. Type .play song name or .play <url>',
+        'playlist': 'Show your playlist',
         'queue': 'Show what is playing',
         'skip': 'Skip to the next song in the queue.',
         'pause': 'Pause the song that is currently playing.',
@@ -240,25 +248,26 @@ class MusicBot(commands.Bot):
         except discord.errors.ClientException:
             await self.send_message("Failed to connect to channel.")
 
-    async def add_to_playlist(self, ctx) -> None:
-        user_name = ctx.author.name
+    async def add_to_playlist(self, ctx, user_name) -> None:
         user = self.database.get_user(user_name)
         song, _ = self.database.get_next_song_from_queue()
-        self.database.add_song_to_playlist(user, song)
-
-        embed = discord.Embed(title=f"{user.name}'s Playlist", color=discord.Color.green())
-        embed.add_field(name="Song Added", value=song.title, inline=False)
-        embed.set_thumbnail(url=song.thumbnail)
-        await ctx.send(embed=embed)
+        
+        song_in_playlist = self.database.add_song_to_playlist(user, song)
+        if song_in_playlist:
+            await self.send_message(ctx=ctx, message=f"{song.title} is already in {user_name}'s playlist")
+        else:
+            embed = discord.Embed(title=f"{user.name}'s Playlist", color=discord.Color.green())
+            embed.add_field(name="Song Added", value=song.title, inline=False)
+            embed.set_thumbnail(url=song.thumbnail)
+            await ctx.send(embed=embed)
 
     async def send_now_playing(self, ctx, song: Song, user: User) -> None:
 
         embed = discord.Embed(title=f"Now Playing", color=discord.Color.green())
         embed.add_field(name="Title", value=song.title, inline=False)
-        embed.add_field(name="Played By", value=user.name, inline=False)
+        embed.add_field(name="Played By", value=user.name, inline=True)
+        embed.add_field(name="YouTube", value=f"[Link]({song.url})", inline=True)
         embed.set_thumbnail(url=song.thumbnail)
-
-        # youtube_link_button = Button(label='YouTube', style=5, url=song.url)
         
         await ctx.send(
                 embed=embed,
@@ -286,6 +295,12 @@ class MusicBot(commands.Bot):
 
     async def show_queue(self, ctx) -> None:
         pass
+
+    async def show_playlist(self, ctx) -> None:
+        user_name = ctx.author.name
+        user = self.database.get_user(user_name)
+        user_songs = self.database.get_playlist(user)
+        print(user_songs)
 
     async def skip(self, ctx) -> None:
         voice_client = ctx.message.guild.voice_client
@@ -333,6 +348,8 @@ class MusicBot(commands.Bot):
         else:
             await ctx.send("K-Music is not in a channel.")
 
+# TODO: How to add a youtube link here as a button?
+# youtube_link_button = Button(label='YouTube', style=5, url=song.url)
 class NowPlayingButtons(discord.ui.View):
 
     def __init__(self, music_bot, ctx):
@@ -366,10 +383,12 @@ class NowPlayingButtons(discord.ui.View):
 
     @discord.ui.button(label='Add', style=discord.ButtonStyle.green, emoji="➕")
     async def add(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await self.music_bot.add_to_playlist(self.ctx)
+        await self.music_bot.add_to_playlist(
+            ctx=self.ctx, 
+            user_name=interaction.user.name
+        )
         await interaction.response.edit_message(view=self)
-
-
+    
 class Request:
 
     bot_status = Status()

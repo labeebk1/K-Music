@@ -43,11 +43,13 @@ async def play(ctx, *song_args):
     request = Request(ctx, music_bot)
     await request.create_thread(action=Request.bot_status.PLAYING)
 
-
 @music_bot.command(name='queue', aliases=['q'], help=MusicBot.get_command_info('queue'))
 async def queue(ctx):
     await music_bot.show_queue(ctx)
 
+@music_bot.command(name='playlist', aliases=['pl'], help=MusicBot.get_command_info('playlist'))
+async def playlist(ctx):
+    await music_bot.show_playlist(ctx)
 
 @music_bot.command(name='skip', help=MusicBot.get_command_info('skip'))
 async def skip(ctx):
@@ -57,16 +59,13 @@ async def skip(ctx):
 async def pause(ctx):
     await music_bot.pause(ctx)
 
-
 @music_bot.command(name='resume', help=MusicBot.get_command_info('resume'))
 async def resume(ctx):
     await music_bot.resume(ctx)
 
-
 @music_bot.command(name='leave', help=MusicBot.get_command_info('leave'))
 async def leave(ctx):
     await music_bot.leave(ctx)
-
 
 @music_bot.event
 async def on_ready():
