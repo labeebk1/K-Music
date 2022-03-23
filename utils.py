@@ -240,12 +240,16 @@ class MusicBot(commands.Bot):
         except discord.errors.ClientException:
             await self.send_message("Failed to connect to channel.")
 
-    def add_to_playlist(self, ctx) -> None:
+    async def add_to_playlist(self, ctx) -> None:
         user_name = ctx.author.name
         user = self.database.get_user(user_name)
         song, _ = self.database.get_next_song_from_queue()
         self.database.add_song_to_playlist(user, song)
-        self.send_message(f"Added Song: {song.title} \n to {user.name}'s Playlist")
+
+        embed = discord.Embed(title=f"{user.name}'s Playlist", color=discord.Color.green())
+        embed.add_field(name="Song Added", value=song.title, inline=False)
+        embed.set_thumbnail(url=song.thumbnail)
+        await ctx.send(embed=embed)
 
     async def send_now_playing(self, ctx, song: Song, user: User) -> None:
 
@@ -362,7 +366,7 @@ class NowPlayingButtons(discord.ui.View):
 
     @discord.ui.button(label='Add', style=discord.ButtonStyle.green, emoji="➕")
     async def add(self, button: discord.ui.Button, interaction: discord.Interaction):
-        self.music_bot.add_to_playlist(self.ctx)
+        await self.music_bot.add_to_playlist(self.ctx)
         await interaction.response.edit_message(view=self)
 
 
