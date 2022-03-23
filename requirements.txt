@@ -1,5 +1,6 @@
 discord==1.0.1
-discord.py==1.6.0
+discord.py==1.7.3
 python-dotenv==0.15.0
 youtube-dl==2021.2.10
 youtube-search-python
+discord_components==2.1.2

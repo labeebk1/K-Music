@@ -23,24 +23,27 @@ class Song(Base):
     title = Column(String)
     url = Column(String)
     file_path = Column(String)
+    thumbnail = Column(String)
+    upvotes = Column(Integer)
 
 class SongQueue(Base):
     __tablename__ = 'song_queue'
     id = Column(Integer, primary_key=True)
     song_id = Column(Integer, ForeignKey('songs.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
 
 class DownloadQueue(Base):
     __tablename__ = 'download_queue'
     id = Column(Integer, primary_key=True)
+    pid = Column(Integer)
     song_id = Column(Integer, ForeignKey('songs.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
 
 class Playlist(Base):
     __tablename__ = 'playlist'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'))
     song_id = Column(Integer, ForeignKey('songs.id'))
-    favorite = Column(Boolean)
-    listen_count = Column(Integer)
 
 class User(Base):
     __tablename__ = 'users'

@@ -14,8 +14,10 @@ music_bot = MusicBot(
 async def play(ctx, *song_args):
     
     is_user_connected = await music_bot.check_user_connected(ctx)
+    user_name = ctx.message.author.name
+
     if not is_user_connected:
-        chat_notification = f"{ctx.message.author.name} is not connected to a voice channel."
+        chat_notification = f"{user_name} is not connected to a voice channel."
         await music_bot.send_message(ctx, chat_notification)
         return
 
@@ -23,22 +25,28 @@ async def play(ctx, *song_args):
     if not is_bot_connected:
         await music_bot.connect_to_channel(ctx)
 
+    user = music_bot.get_user_from_db(user_name)
+
     # The user input is either a url or a set of words for a song name
     song_argument = ' '.join(song_args)
     song = music_bot.get_song_from_db(song_argument)
 
     if not song:
         song = music_bot.search_song_from_youtube(song_argument)
-        await music_bot.download_song(ctx, song=song, loop=music_bot.loop)
+        await music_bot.download_song(ctx, song=song, user=user, loop=music_bot.loop)
         request = Request(ctx, music_bot)
         await request.create_thread(action=Request.bot_status.PLAYING)
         return
 
-    music_bot.add_song_to_song_queue(song)
+    music_bot.add_song_to_song_queue(song=song, user=user)
 
-    print("Creating request")
     request = Request(ctx, music_bot)
     await request.create_thread(action=Request.bot_status.PLAYING)
+
+
+@music_bot.command(name='queue', aliases=['q'], help=MusicBot.get_command_info('queue'))
+async def queue(ctx):
+    await music_bot.show_queue(ctx)
 
 
 @music_bot.command(name='skip', help=MusicBot.get_command_info('skip'))

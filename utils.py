@@ -1,9 +1,10 @@
 import os
 import uuid
 import discord
+# from discord_components import Button, SelectOption, Select
 from discord.ext import commands
 import asyncio
-from models import Status, BotStatus, User, Song, SongQueue, DownloadQueue
+from models import Status, BotStatus, User, Song, SongQueue, DownloadQueue, Playlist
 import youtube_dl
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
@@ -39,20 +40,23 @@ class MusicDB:
             self.session.add(bot_status)
         self.session.commit()
 
-    def create_user(self, name: str) -> None:
+    def create_user(self, name: str) -> User:
         user = User(name=name)
         self.session.add(user)
         self.session.commit()
+        return user
 
     def get_user(self, name: str) -> User:
         user = self.session.query(User).filter_by(name=name).first()
         if not user:
-            return None
+            user = self.create_user(name)
         return user
 
-    def add_song_to_download_queue(self, song: Song) -> None:
+    def add_song_to_download_queue(self, song: Song, user: User) -> None:
         download_song = DownloadQueue(
-            song_id=song.id
+            pid=os.getpid(),
+            song_id=song.id,
+            user_id=user.id
         )
         self.session.add(download_song)
         self.session.commit()
@@ -67,10 +71,21 @@ class MusicDB:
     def add_song(self, song: Song) -> None:
         self.session.add(song)
         self.session.commit()
+    
+    def add_song_to_playlist(self, user: User, song: Song):
+        playlist = self.session.query(Playlist).filter_by(user_id=user.id, song_id=song.id).first()
+        if not playlist:
+            playlist = Playlist(
+                user_id = user.id,
+                song_id = song.id
+            )
+            self.session.add(playlist)
+            self.session.commit()
 
-    def add_song_to_song_queue(self, song: Song) -> None:
+    def add_song_to_song_queue(self, song: Song, user: User) -> None:
         song_item = SongQueue(
-            song_id=song.id
+            song_id=song.id,
+            user_id=user.id
         )
         self.session.add(song_item)
         self.session.commit()
@@ -81,7 +96,9 @@ class MusicDB:
             return False
         song = self.session.query(Song).filter_by(
             id=song_queue_item.song_id).first()
-        return song
+        user = self.session.query(User).filter_by(
+            id=song_queue_item.user_id).first()
+        return song, user
 
     def remove_song_from_song_queue(self, song: Song) -> None:
         song_queue_item = self.session.query(
@@ -127,7 +144,9 @@ class SongTools:
             song_data = Video.get(url, ResultMode.json)
         song_title = song_data['title']
         song_url = song_data['link']
-        return song_title, song_url
+        thumbnail = song_data['thumbnails'][0]['url']
+
+        return song_title, song_url, thumbnail
 
     @classmethod
     async def download_from_youtube(cls, song: Song, loop) -> None:
@@ -136,11 +155,11 @@ class SongTools:
         file_name = SongTools.ytdl.prepare_filename(data)
         song.file_path = file_name
 
-
 class MusicBot(commands.Bot):
 
     commands_info = {
         'play': 'Play a song. Type .play song name or .play <url>',
+        'queue': 'Show what is playing',
         'skip': 'Skip to the next song in the queue.',
         'pause': 'Pause the song that is currently playing.',
         'resume': 'Resume the song that was playing.',
@@ -162,7 +181,7 @@ class MusicBot(commands.Bot):
             song_file = self.database.session.query(
                 Song).filter_by(url=song_argument).first()
             return song_file
-        song_title, _ = SongTools.get_song_info_from_youtube(
+        song_title, _, _ = SongTools.get_song_info_from_youtube(
             song_search_name=song_argument)
 
         song_file = self.database.session.query(
@@ -172,31 +191,36 @@ class MusicBot(commands.Bot):
     def search_song_from_youtube(self, song_argument) -> Song:
         is_url = SongTools.check_is_url(song_argument)
         if is_url:
-            song_title, song_url = SongTools.get_song_info_from_youtube(
+            song_title, song_url, thumbnail = SongTools.get_song_info_from_youtube(
                 url=song_argument)
         else:
-            song_title, song_url = SongTools.get_song_info_from_youtube(
+            song_title, song_url, thumbnail = SongTools.get_song_info_from_youtube(
                 song_search_name=song_argument)
         song = Song(
             title=song_title,
             url=song_url,
-            file_path=None
+            file_path=None,
+            thumbnail=thumbnail,
+            upvotes=0
         )
         return song
 
-    def add_song_to_song_queue(self, song: Song) -> None:
-        self.database.add_song_to_song_queue(song)
+    def add_song_to_song_queue(self, song: Song, user: User) -> None:
+        self.database.add_song_to_song_queue(song, user)
 
-    async def download_song(self, ctx, song: Song, loop) -> None:
-        self.database.add_song_to_download_queue(song)
+    async def download_song(self, ctx, song: Song, user: User, loop) -> None:
+        self.database.add_song_to_download_queue(song, user)
         await self.send_message(ctx, f"Downloading Song: {song.url}")
         await SongTools.download_from_youtube(song, loop)
         self.database.add_song(song)
         self.database.remove_song_from_download_queue(song)
-        self.database.add_song_to_song_queue(song)
+        self.database.add_song_to_song_queue(song, user)
 
     async def send_message(self, ctx, message: str) -> None:
         await ctx.send(message)
+
+    def get_user_from_db(self, name) -> User:
+        return self.database.get_user(name)
 
     async def check_user_connected(self, ctx) -> bool:
         if not ctx.message.author.voice:
@@ -216,12 +240,34 @@ class MusicBot(commands.Bot):
         except discord.errors.ClientException:
             await self.send_message("Failed to connect to channel.")
 
+    def add_to_playlist(self, ctx) -> None:
+        user_name = ctx.author.name
+        user = self.database.get_user(user_name)
+        song, _ = self.database.get_next_song_from_queue()
+        self.database.add_song_to_playlist(user, song)
+        self.send_message(f"Added Song: {song.title} \n to {user.name}'s Playlist")
+
+    async def send_now_playing(self, ctx, song: Song, user: User) -> None:
+
+        embed = discord.Embed(title=f"Now Playing", color=discord.Color.green())
+        embed.add_field(name="Title", value=song.title, inline=False)
+        embed.add_field(name="Played By", value=user.name, inline=False)
+        embed.set_thumbnail(url=song.thumbnail)
+
+        # youtube_link_button = Button(label='YouTube', style=5, url=song.url)
+        
+        await ctx.send(
+                embed=embed,
+                view=NowPlayingButtons(self, ctx)
+            )
+
     async def play_next_song(self, ctx) -> None:
         server = ctx.message.guild
         voice_channel = server.voice_client
         event = asyncio.Event()
 
-        song = self.database.get_next_song_from_queue()
+        song, user = self.database.get_next_song_from_queue()
+        await self.send_now_playing(ctx, song, user)
 
         voice_channel.play(
             discord.FFmpegPCMAudio(
@@ -233,6 +279,9 @@ class MusicBot(commands.Bot):
         await event.wait()
 
         self.database.remove_song_from_song_queue(song)
+
+    async def show_queue(self, ctx) -> None:
+        pass
 
     async def skip(self, ctx) -> None:
         voice_client = ctx.message.guild.voice_client
@@ -268,6 +317,10 @@ class MusicBot(commands.Bot):
         else:
             await ctx.send("The bot was not paused before this.")
 
+    def check_song_playing(self, ctx) -> bool:
+        voice_client = ctx.message.guild.voice_client
+        return not voice_client.is_paused()
+
     async def leave(self, ctx) -> None:
         voice_client = ctx.message.guild.voice_client
         if voice_client.is_connected():
@@ -275,6 +328,42 @@ class MusicBot(commands.Bot):
             await voice_client.disconnect()
         else:
             await ctx.send("K-Music is not in a channel.")
+
+class NowPlayingButtons(discord.ui.View):
+
+    def __init__(self, music_bot, ctx):
+        super().__init__()
+        self.music_bot = music_bot
+        self.ctx = ctx
+
+    @discord.ui.button(label='Pause', style=discord.ButtonStyle.red, emoji="⏸️")
+    async def play_pause(self, button: discord.ui.Button, interaction: discord.Interaction):
+        if button.style == discord.ButtonStyle.green:
+            button.style = discord.ButtonStyle.red
+            button.emoji = '⏸️'
+            button.label = 'Pause'
+            await self.music_bot.resume(self.ctx)
+        elif button.style == discord.ButtonStyle.red:
+            button.style = discord.ButtonStyle.green
+            button.emoji = '▶️'
+            button.label = 'Play'
+            await self.music_bot.pause(self.ctx)
+        
+        await interaction.response.edit_message(view=self)
+
+    @discord.ui.button(label='Skip', style=discord.ButtonStyle.red, emoji="⏩")
+    async def skip(self, button: discord.ui.Button, interaction: discord.Interaction):
+        currently_playing = self.music_bot.check_song_playing(self.ctx)
+        if not currently_playing:
+           await self.music_bot.resume(self.ctx)
+        button.disabled = True
+        await self.music_bot.skip(self.ctx)
+        await interaction.response.edit_message(view=self)
+
+    @discord.ui.button(label='Add', style=discord.ButtonStyle.green, emoji="➕")
+    async def add(self, button: discord.ui.Button, interaction: discord.Interaction):
+        self.music_bot.add_to_playlist(self.ctx)
+        await interaction.response.edit_message(view=self)
 
 
 class Request:
