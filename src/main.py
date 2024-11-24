@@ -1,87 +1,92 @@
-import discord
 import os
-from utils import DISCORD_TOKEN, MusicBot, Request
-
+import uvicorn
+import asyncio
+import discord
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from dotenv import load_dotenv
+from utils import MusicBot
 
-# Get Environment Variables
+# Load environment variables
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-FFMPEG_PATH = os.getenv("FFMPEG_PATH")
 
-# Instantiate Discord Bot Object
-intents = discord.Intents().all()
-client = discord.Client(intents=intents)
-music_bot = MusicBot(
-    db_path='sqlite:///music.db', 
-    command_prefix='.', 
-    intents=intents
+# Discord Bot Setup
+intents = discord.Intents.all()
+music_bot = MusicBot(db_path="sqlite:///music.db", command_prefix="!", intents=intents)
+
+app = FastAPI()
+
+@app.on_event("startup")
+async def startup():
+    loop = asyncio.get_event_loop()
+    loop.create_task(music_bot.start(DISCORD_TOKEN))
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust this to your frontend's domain in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-@music_bot.command(name='play', aliases=["p"], help=MusicBot.get_command_info('play'))
-async def play(ctx, *song_args):
-    
-    is_user_connected = await music_bot.check_user_connected(ctx)
-    user_name = ctx.message.author.name
+# Models for API requests
+class PlayRequest(BaseModel):
+    title: str
+    url: str
+    user_name: str
 
-    if not is_user_connected:
-        chat_notification = f"{user_name} is not connected to a voice channel."
-        await music_bot.send_message(ctx, chat_notification)
-        return
 
-    is_bot_connected = await music_bot.check_bot_connected(ctx)
-    if not is_bot_connected:
-        await music_bot.connect_to_channel(ctx)
+@app.post("/play_now")
+async def play_now(request: PlayRequest):
+    """
+    Add a song to the song queue or play it immediately if the queue is empty.
+    """
+    # Extract data from the request
+    title = request.title
+    url = request.url
+    user_name = request.user_name
 
+    # Ensure the song is in the database
     user = music_bot.get_user_from_db(user_name)
 
-    # The user input is either a url or a set of words for a song name
-    song_argument = ' '.join(song_args)
-    if not song_argument:
-        music_bot.send_message(ctx=ctx, message="Please enter a song!")
-        return
+    # Get the streamable URL
+    streamable_url = music_bot.get_streamable_url(url)
 
-    song = music_bot.get_song_from_db(song_argument)
+    # Create song object
+    song = music_bot.get_or_create_song(title=title, url=streamable_url)
 
-    if not song:
-        song = music_bot.search_song_from_youtube(song_argument)
-        await music_bot.download_song(ctx, song=song, user=user, loop=music_bot.loop)
-        request = Request(ctx, music_bot)
-        await request.create_thread(action=Request.bot_status.PLAYING)
-        return
+    # Connect to Voice Channel
+    voice_client = await music_bot.connect_to_voice_channel()
 
-    music_bot.add_song_to_song_queue(song=song, user=user)
+    # Stream the song
+    await music_bot.stream_song(voice_client, song)
 
-    request = Request(ctx, music_bot)
-    await request.create_thread(action=Request.bot_status.PLAYING)
+    return {"message": f"Streaming"}
 
-@music_bot.command(name='queue', aliases=['q'], help=MusicBot.get_command_info('queue'))
-async def queue(ctx):
-    await music_bot.show_queue(ctx)
+@app.get("/pause")
+async def pause():
+    """
+    Pause the current song.
+    """
+    voice_client = await music_bot.connect_to_voice_channel()
+    if voice_client.is_playing():
+        voice_client.pause()
 
-@music_bot.command(name='playlist', aliases=['pl'], help=MusicBot.get_command_info('playlist'))
-async def playlist(ctx):
-    await music_bot.show_playlist(ctx)
+    return {"message": "Paused"}
 
-@music_bot.command(name='skip', help=MusicBot.get_command_info('skip'))
-async def skip(ctx):
-    await music_bot.skip(ctx)
+@app.get("/resume")
+async def resume():
+    """
+    Resume the current song.
+    """
+    voice_client = await music_bot.connect_to_voice_channel()
+    if voice_client.is_paused():
+        voice_client.resume()
 
-@music_bot.command(name='pause', help=MusicBot.get_command_info('pause'))
-async def pause(ctx):
-    await music_bot.pause(ctx)
+    return {"message": "Resumed"}
 
-@music_bot.command(name='resume', help=MusicBot.get_command_info('resume'))
-async def resume(ctx):
-    await music_bot.resume(ctx)
 
-@music_bot.command(name='leave', help=MusicBot.get_command_info('leave'))
-async def leave(ctx):
-    await music_bot.leave(ctx)
-
-@music_bot.event
-async def on_ready():
-    print('K-Music Bot is Running!')
-
-if __name__ == '__main__':
-    music_bot.run(DISCORD_TOKEN)
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8000)

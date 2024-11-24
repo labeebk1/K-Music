@@ -22,9 +22,6 @@ class Song(Base):
     id = Column(Integer, primary_key=True)
     title = Column(String)
     url = Column(String)
-    file_path = Column(String)
-    thumbnail = Column(String)
-    upvotes = Column(Integer)
 
 class SongQueue(Base):
     __tablename__ = 'song_queue'
