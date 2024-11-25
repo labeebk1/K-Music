@@ -16,6 +16,7 @@ class MusicBot(commands.Bot):
         super().__init__(command_prefix=command_prefix, intents=intents)
         self.database = MusicDAO(db_path=db_path)
         self.is_playing = False
+        self.skip_to_replay = False
         self.lock = Lock()  # Ensure mutual exclusion during playback operations
 
     def add_song_to_song_queue(self, song: Song, user: User) -> None:
@@ -93,9 +94,35 @@ class MusicBot(commands.Bot):
             self.is_playing = False
     
     def handle_end_of_song(self, song):
-        print("Song ended.")
+        if self.skip_to_replay:
+            self.skip_to_replay = False
+            print(f"Skipping removal for replay: {song.title}")
+            return
+
         self.is_playing = False
         self.database.remove_song_from_queue(song_title=song.title)
+
+    async def replay(self):
+        """
+        Replay the current song.
+        """
+        song, _ = self.database.get_first_song_from_queue()
+        if not song:
+            print("No song to replay.")
+            return
+
+        print(f"Replaying song: {song.title}")
+        voice_client = await self.connect_to_voice_channel()
+        
+        # Set the replay flag and stop the current song
+        self.skip_to_replay = True
+        if voice_client.is_playing():
+            voice_client.stop()
+
+        # Replay the song
+        await self.stream_song(voice_client, song)
+        return {"message": "Replaying"}
+
 
     async def skip_current_song(self):
         """
@@ -106,6 +133,7 @@ class MusicBot(commands.Bot):
                 if vc.is_playing():
                     vc.stop()
             self.is_playing = False
+            self.skip_to_replay = False
 
     def get_streamable_url(self, song_url):
         ydl_opts = {'format': 'bestaudio/best', 'noplaylist': True}

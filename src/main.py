@@ -76,11 +76,7 @@ async def replay():
     """
     Replay the current song.
     """
-    song, _ = music_bot.database.get_first_song_from_queue()
-    voice_client = await music_bot.connect_to_voice_channel()
-    if voice_client.is_playing():
-        voice_client.stop()
-    await music_bot.stream_song(voice_client, song)
+    await music_bot.replay()
     return {"message": "Replaying"}
 
 @app.get("/current_song")
