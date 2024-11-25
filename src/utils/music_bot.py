@@ -62,10 +62,13 @@ class MusicBot(commands.Bot):
                 source=streamable_url,
             )
             voice_client.play(source)
-            print(f"Now streaming: {song.title}")
         except Exception as e:
             print(f"Error while streaming song: {e}")
 
+        self.database.remove_first_song_from_song_queue()
+        song, _ = self.database.get_first_song_from_queue()
+        if song:
+            await self.stream_song(voice_client, song)
 
     def get_streamable_url(self, song_url):
         ydl_opts = {'format': 'bestaudio/best', 'noplaylist': True}
