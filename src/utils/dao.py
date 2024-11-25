@@ -11,17 +11,25 @@ class MusicDAO:
         engine = create_engine(db_path, echo=False, connect_args={"check_same_thread": False})
         self.session = Session(engine)
 
-    def create_user(self, name: str) -> User:
-        user = User(name=name)
+    def create_user(self, name: str, password: str) -> User:
+        user = User(name=name, password=password)
         self.session.add(user)
         self.session.commit()
         return user
-
-    def get_user(self, name: str) -> User:
+    
+    def get_user(self, name):
         user = self.session.query(User).filter_by(name=name).first()
-        if not user:
-            user = self.create_user(name)
         return user
+
+    def user_exists(self, name):
+        user = self.session.query(User).filter_by(name=name).first()
+        return user is not None
+    
+    def authenticate_user(self, name, password) -> User:
+        user = self.session.query(User).filter_by(name=name, password=password).first()
+        if user:
+            return True
+        return False
 
     def add_song(self, song: Song) -> None:
         self.session.add(song)

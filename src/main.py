@@ -42,6 +42,11 @@ class RemoveFromQueueRequest(BaseModel):
     position: int
 
 
+class UserRequest(BaseModel):
+    name: str
+    password: str
+
+
 @app.post("/play_now")
 async def play_now(request: PlayRequest):
     """
@@ -167,6 +172,21 @@ async def remove_from_queue(request: RemoveFromQueueRequest):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/login")
+async def login(request: UserRequest):
+    user_exists = music_bot.database.user_exists(request.name)
+
+    if user_exists:
+        authenticated = music_bot.database.authenticate_user(request.name, request.password)
+        if not authenticated:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        return {"user": request.name}
+    else:
+        music_bot.database.create_user(request.name, request.password)
+        return {"user": request.name}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)

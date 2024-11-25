@@ -33,7 +33,8 @@ class Playlist(Base):
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
-    name = Column(String)
+    name = Column(String, unique=True)
+    password = Column(String)
 
 if __name__ == '__main__':
     engine = create_engine('sqlite:///music.db', echo=True)
