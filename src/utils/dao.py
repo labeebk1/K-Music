@@ -52,19 +52,58 @@ class MusicDAO:
         self.session.add(song_item)
         self.session.commit()
 
-    def get_next_song_from_queue(self) -> Song:
+    def replace_first_song_in_queue(self, song: Song, user: User) -> None:
+        song_queue_item = self.session.query(SongQueue).first()
+        if song_queue_item:
+            song_queue_item.song_id = song.id
+            song_queue_item.user_id = user.id
+            self.session.commit()
+
+    def get_first_song_from_queue(self) -> Song:
         song_queue_item = self.session.query(SongQueue).first()
         if not song_queue_item:
-            return False
+            return None, None
         song = self.session.query(Song).filter_by(
             id=song_queue_item.song_id).first()
         user = self.session.query(User).filter_by(
             id=song_queue_item.user_id).first()
         return song, user
 
-    def remove_song_from_song_queue(self, song: Song) -> None:
-        song_queue_item = self.session.query(
-            SongQueue).filter_by(song_id=song.id).first()
+    def remove_first_song_from_song_queue(self) -> None:
+        song_queue_item = self.session.query(SongQueue).first()
+        if song_queue_item:
+            self.session.delete(song_queue_item)
+            self.session.commit()
+
+    def show_queue(self):
+        queue = self.session.query(SongQueue).all()
+        song_queue = []
+        position = 0
+        for item in queue:
+            song = self.session.query(Song).filter_by(id=item.song_id).first()
+            user = self.session.query(User).filter_by(id=item.user_id).first()
+            song_queue.append(
+                {
+                    "position": position,
+                    "user": user.name, 
+                    "song": song.title,
+                    "url": song.url  # Add the URL here
+                }
+            )
+            position += 1
+        return song_queue
+
+    def remove_song_from_queue(self, song_title):
+        """
+        Remove a song from the queue based on its title.
+        """
+        # Find the song in the queue
+        song = self.session.query(Song).filter_by(title=song_title).first()
+        if not song:
+            raise ValueError("Song not found in the database.")
+
+        # Remove the song from the queue
+        song_queue_item = self.session.query(SongQueue).filter_by(song_id=song.id).first()
         if song_queue_item:
             self.session.delete(song_queue_item)
             self.session.commit()

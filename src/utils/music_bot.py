@@ -77,52 +77,11 @@ class MusicBot(commands.Bot):
     #         embed.set_thumbnail(url=song.thumbnail)
     #         await ctx.send(embed=embed)
 
-    # async def play_next_song(self) -> None:
-    #     """
-    #     Play the next song in the queue by streaming it from YouTube.
-    #     """
-    #     song, user = self.database.get_next_song_from_queue()
-    #     if not song:
-    #         print("No songs in the queue.")
-    #         return
-
-    #     # Stream the song
-    #     await self.stream_song(song)
-
-    #     # Remove from queue after playing
-    #     self.database.remove_song_from_song_queue(song)
-
-    # async def show_queue(self, ctx) -> None:
-    #     pass
-
     # async def show_playlist(self, ctx) -> None:
     #     user_name = ctx.author.name
     #     user = self.database.get_user(user_name)
     #     user_songs = self.database.get_playlist(user)
     #     print(user_songs)
-
-    # async def skip(self, ctx) -> None:
-    #     voice_client = ctx.message.guild.voice_client
-    #     if voice_client.is_playing():
-    #         self.database.set_bot_status(Status.STOP)
-    #         try:
-    #             await voice_client.stop()
-    #         except Exception:
-    #             pass  # TODO: This seems to throw an exception even though it works?
-    #     else:
-    #         await ctx.send("K-Music is not playing anything.")
-
-    # def check_song_playing(self, ctx) -> bool:
-    #     voice_client = ctx.message.guild.voice_client
-    #     return not voice_client.is_paused()
-
-    # async def leave(self, ctx) -> None:
-    #     voice_client = ctx.message.guild.voice_client
-    #     if voice_client.is_connected():
-    #         self.database.clear_status_table()
-    #         await voice_client.disconnect()
-    #     else:
-    #         await ctx.send("K-Music is not in a channel.")
 
     def get_streamable_url(self, song_url):
         ydl_opts = {'format': 'bestaudio/best', 'noplaylist': True}

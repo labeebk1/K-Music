@@ -2,7 +2,7 @@ import os
 import uvicorn
 import asyncio
 import discord
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -38,6 +38,10 @@ class PlayRequest(BaseModel):
     user_name: str
 
 
+class RemoveFromQueueRequest(BaseModel):
+    position: int
+
+
 @app.post("/play_now")
 async def play_now(request: PlayRequest):
     """
@@ -50,7 +54,7 @@ async def play_now(request: PlayRequest):
 
     user = music_bot.get_user_from_db(user_name)
     song = music_bot.get_or_create_song(title=title, url=url)
-    music_bot.add_song_to_song_queue(song, user)
+    music_bot.database.replace_first_song_in_queue(song, user)
 
     # Connect to Voice Channel
     voice_client = await music_bot.connect_to_voice_channel()
@@ -87,12 +91,82 @@ async def replay():
     """
     Replay the current song.
     """
-    song, user = music_bot.database.get_next_song_from_queue()
+    song, _ = music_bot.database.get_first_song_from_queue()
     voice_client = await music_bot.connect_to_voice_channel()
     if voice_client.is_playing():
         voice_client.stop()
     await music_bot.stream_song(voice_client, song)
     return {"message": "Replaying"}
+
+
+@app.get("/current_song")
+async def get_current_song():
+    song, user = music_bot.database.get_first_song_from_queue()
+    if song:
+        return {
+            "title": song.title,
+            "user": user.name
+        }
+    else:
+        return {
+            "title": "",
+            "user": ""
+        }
+    
+@app.get("/skip")
+async def skip():
+    """
+    Skip the current song.
+    """
+    voice_client = await music_bot.connect_to_voice_channel()
+    if voice_client.is_playing():
+        voice_client.stop()
+    
+    music_bot.database.remove_first_song_from_song_queue()
+    song, _ = music_bot.database.get_first_song_from_queue()
+    if song:
+        await music_bot.stream_song(voice_client, song)
+
+    return {"message": "Skipped"}
+
+@app.get("/queue")
+async def get_queue():
+    queue = music_bot.database.show_queue()
+    return {"queue": queue}
+
+@app.post("/add_to_queue")
+async def add_to_queue(request: PlayRequest):
+    """
+    Add a song to the song queue.
+    """
+    title = request.title
+    url = request.url
+    user_name = request.user_name
+    user = music_bot.get_user_from_db(user_name)
+    song = music_bot.get_or_create_song(title=title, url=url)
+    music_bot.database.add_song_to_song_queue(song, user)
+    return {"message": "Song added to queue."}
+
+@app.post("/remove_from_queue")
+async def remove_from_queue(request: RemoveFromQueueRequest):
+    """
+    Remove a song from the queue by its position.
+    """
+    try:
+        # Get the queue from the database
+        queue = music_bot.database.show_queue()
+        position = request.position
+        # Check if the position is valid
+        if position < 0 or position >= len(queue):
+            raise HTTPException(status_code=400, detail="Invalid position")
+
+        # Remove the song from the queue
+        song_to_remove = queue[position]
+        music_bot.database.remove_song_from_queue(song_to_remove['song'])
+        return {"message": f"Removed {song_to_remove['song']} from the queue."}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
