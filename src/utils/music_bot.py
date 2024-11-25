@@ -2,6 +2,7 @@ import asyncio
 import discord
 from discord.ext import commands
 import yt_dlp
+from asyncio import Lock
 
 from utils.dao import MusicDAO
 from utils.entity import User, Song
@@ -14,20 +15,23 @@ class MusicBot(commands.Bot):
     def __init__(self, db_path, command_prefix, intents):
         super().__init__(command_prefix=command_prefix, intents=intents)
         self.database = MusicDAO(db_path=db_path)
+        self.is_playing = False
+        self.lock = Lock()  # Ensure mutual exclusion during playback operations
 
     def add_song_to_song_queue(self, song: Song, user: User) -> None:
         self.database.add_song_to_song_queue(song, user)
 
     def get_user_from_db(self, name) -> User:
         return self.database.get_user(name)
-    
+
     async def connect_to_voice_channel(self):
-        # Cleanup stale connections
+        """
+        Connect to the General voice channel.
+        """
         for vc in self.voice_clients:
             if vc.is_connected():
                 return vc
 
-        # Find the target guild and channel
         guild = discord.utils.get(self.guilds, name=TARGET_GUILD)
         channel = discord.utils.get(guild.voice_channels, name=TARGET_CHANNEL)
         try:
@@ -50,25 +54,58 @@ class MusicBot(commands.Bot):
             self.database.add_song(song)
         return song
 
-    async def stream_song(self, voice_client, song) -> None:
+    async def run_background_task(self):
         """
-        Stream a song directly from YouTube.
+        Periodically check if the bot is idle and handle playback.
+        """
+        while True:
+            await asyncio.sleep(2)  # Check every 2 seconds
+            async with self.lock:
+                if not self.is_playing:
+                    await self.play_next_song()
+
+    async def play_next_song(self):
+        """
+        Play the next song in the queue, if available.
+        """
+        song, user = self.database.get_first_song_from_queue()
+        if song:
+            voice_client = await self.connect_to_voice_channel()
+            await self.stream_song(voice_client, song)
+        else:
+            self.is_playing = False
+
+    async def stream_song(self, voice_client, song):
+        """
+        Stream a song from YouTube.
         """
         try:
             print(f"Streaming song: {song.title}")
+            self.is_playing = True
             streamable_url = self.get_streamable_url(song.url)
             source = discord.FFmpegPCMAudio(
                 executable="./ffmpeg.exe",
                 source=streamable_url,
             )
-            voice_client.play(source)
+            voice_client.play(source, after=lambda e: self.handle_end_of_song(song))
         except Exception as e:
-            print(f"Error while streaming song: {e}")
+            print(f"Error streaming song: {e}")
+            self.is_playing = False
+    
+    def handle_end_of_song(self, song):
+        print("Song ended.")
+        self.is_playing = False
+        self.database.remove_song_from_queue(song_title=song.title)
 
-        self.database.remove_first_song_from_song_queue()
-        song, _ = self.database.get_first_song_from_queue()
-        if song:
-            await self.stream_song(voice_client, song)
+    async def skip_current_song(self):
+        """
+        Skip the current song by stopping playback.
+        """
+        async with self.lock:
+            for vc in self.voice_clients:
+                if vc.is_playing():
+                    vc.stop()
+            self.is_playing = False
 
     def get_streamable_url(self, song_url):
         ydl_opts = {'format': 'bestaudio/best', 'noplaylist': True}

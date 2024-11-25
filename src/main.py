@@ -20,6 +20,7 @@ app = FastAPI()
 async def startup():
     loop = asyncio.get_event_loop()
     loop.create_task(music_bot.start(DISCORD_TOKEN))
+    loop.create_task(music_bot.run_background_task())  # Start the background task for queue management
 
 app.add_middleware(
     CORSMiddleware,
@@ -47,28 +48,6 @@ class UserRequest(BaseModel):
 
 class UsernameRequest(BaseModel):
     name: str
-
-@app.post("/play_now")
-async def play_now(request: PlayRequest):
-    """
-    Add a song to the song queue or play it immediately if the queue is empty.
-    """
-    # Extract data from the request
-    title = request.title
-    url = request.url
-    user_name = request.user_name
-
-    user = music_bot.get_user_from_db(user_name)
-    song = music_bot.get_or_create_song(title=title, url=url)
-    music_bot.database.replace_first_song_in_queue(song, user)
-
-    # Connect to Voice Channel
-    voice_client = await music_bot.connect_to_voice_channel()
-
-    # Stream the song
-    await music_bot.stream_song(voice_client, song)
-
-    return {"message": f"Streaming"}
 
 @app.get("/pause")
 async def pause():
@@ -104,36 +83,23 @@ async def replay():
     await music_bot.stream_song(voice_client, song)
     return {"message": "Replaying"}
 
-
 @app.get("/current_song")
 async def get_current_song():
+    """
+    Fetch the currently playing song.
+    """
     song, user = music_bot.database.get_first_song_from_queue()
     if song:
-        return {
-            "title": song.title,
-            "user": user.name
-        }
-    else:
-        return {
-            "title": "",
-            "user": ""
-        }
-    
+        return {"title": song.title, "user": user.name}
+    return {"title": "", "user": ""}
+
 @app.get("/skip")
 async def skip():
     """
-    Skip the current song.
+    Skip the current song and play the next one in the queue.
     """
-    voice_client = await music_bot.connect_to_voice_channel()
-    if voice_client.is_playing():
-        voice_client.stop()
-    
-    music_bot.database.remove_first_song_from_song_queue()
-    song, _ = music_bot.database.get_first_song_from_queue()
-    if song:
-        await music_bot.stream_song(voice_client, song)
-
-    return {"message": "Skipped"}
+    await music_bot.skip_current_song()
+    return {"message": "Skipped to the next song"}
 
 @app.get("/queue")
 async def get_queue():
