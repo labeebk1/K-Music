@@ -4,7 +4,7 @@ from discord.ext import commands
 import yt_dlp
 
 from utils.dao import MusicDAO
-from utils.entity import Status, User, Song
+from utils.entity import User, Song
 
 TARGET_GUILD = "Sudden Death"
 TARGET_CHANNEL = "General"
@@ -53,9 +53,10 @@ class MusicBot(commands.Bot):
         """
         try:
             print(f"Streaming song: {song.title}")
+            streamable_url = self.get_streamable_url(song.url)
             source = discord.FFmpegPCMAudio(
                 executable="./ffmpeg.exe",
-                source=song.url,
+                source=streamable_url,
             )
             voice_client.play(source)
             print(f"Now streaming: {song.title}")
@@ -110,29 +111,6 @@ class MusicBot(commands.Bot):
     #             pass  # TODO: This seems to throw an exception even though it works?
     #     else:
     #         await ctx.send("K-Music is not playing anything.")
-
-    # async def pause(self, ctx) -> None:
-    #     voice_client = ctx.message.guild.voice_client
-    #     if voice_client.is_playing():
-    #         self.database.set_bot_status(Status.PAUSE)
-    #         try:
-    #             await voice_client.pause()
-    #         except Exception:
-    #             pass  # TODO: This seems to throw an exception even though it works?
-    #     else:
-    #         await ctx.send("K-Music is not playing anything.")
-
-    # async def resume(self, ctx) -> None:
-    #     voice_client = ctx.message.guild.voice_client
-    #     if voice_client.is_paused():
-    #         self.database.set_bot_status(Status.PLAYING)
-    #         try:
-    #             await voice_client.resume()
-    #         except Exception:
-    #             pass  # TODO: This seems to throw an exception even though it works?
-
-    #     else:
-    #         await ctx.send("The bot was not paused before this.")
 
     # def check_song_playing(self, ctx) -> bool:
     #     voice_client = ctx.message.guild.voice_client

@@ -48,14 +48,9 @@ async def play_now(request: PlayRequest):
     url = request.url
     user_name = request.user_name
 
-    # Ensure the song is in the database
     user = music_bot.get_user_from_db(user_name)
-
-    # Get the streamable URL
-    streamable_url = music_bot.get_streamable_url(url)
-
-    # Create song object
-    song = music_bot.get_or_create_song(title=title, url=streamable_url)
+    song = music_bot.get_or_create_song(title=title, url=url)
+    music_bot.add_song_to_song_queue(song, user)
 
     # Connect to Voice Channel
     voice_client = await music_bot.connect_to_voice_channel()
@@ -87,6 +82,17 @@ async def resume():
 
     return {"message": "Resumed"}
 
+@app.get("/replay")
+async def replay():
+    """
+    Replay the current song.
+    """
+    song, user = music_bot.database.get_next_song_from_queue()
+    voice_client = await music_bot.connect_to_voice_channel()
+    if voice_client.is_playing():
+        voice_client.stop()
+    await music_bot.stream_song(voice_client, song)
+    return {"message": "Replaying"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)

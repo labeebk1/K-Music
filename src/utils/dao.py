@@ -3,36 +3,13 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from utils.entity import Status, BotStatus, User, Song, SongQueue, Playlist
+from utils.entity import User, Song, SongQueue, Playlist
 
 
 class MusicDAO:
     def __init__(self, db_path):
         engine = create_engine(db_path, echo=False, connect_args={"check_same_thread": False})
         self.session = Session(engine)
-        self.clear_status_table()
-
-    def clear_status_table(self) -> None:
-        self.session.query(BotStatus).delete()
-        self.session.commit()
-        self.set_bot_status(Status.STOP)
-
-    def get_bot_status(self) -> BotStatus:
-        bot_status = self.session.query(BotStatus).first()
-        return bot_status
-
-    def set_bot_status(self, status: Status) -> None:
-        current_bot_status = self.get_bot_status()
-        if current_bot_status:
-            current_bot_status.status = status
-            current_bot_status.pid = os.getpid()
-        else:
-            bot_status = BotStatus(
-                status=status,
-                pid=os.getpid()
-            )
-            self.session.add(bot_status)
-        self.session.commit()
 
     def create_user(self, name: str) -> User:
         user = User(name=name)

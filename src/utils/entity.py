@@ -5,18 +5,6 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
-class Status(Enum):
-    STOP = 1
-    PLAYING = 2
-    PAUSE = 3
-    SKIP = 4
-
-class BotStatus(Base):
-    __tablename__ = 'status'
-    id = Column(Integer, primary_key=True)
-    status = Column(Integer)
-    pid = Column(Integer)
-
 class Song(Base):
     __tablename__ = 'songs'
     id = Column(Integer, primary_key=True)
