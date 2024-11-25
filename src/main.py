@@ -2,6 +2,7 @@ import os
 import uvicorn
 import asyncio
 import discord
+import yt_dlp
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -48,6 +49,10 @@ class UserRequest(BaseModel):
 
 class UsernameRequest(BaseModel):
     name: str
+
+class PlaylistImportRequest(BaseModel):
+    user_name: str
+    url: str
 
 @app.get("/pause")
 async def pause():
@@ -186,6 +191,52 @@ async def login(request: UserRequest):
         music_bot.database.create_user(request.name, request.password)
         return {"user": request.name}
 
+@app.post("/import_playlist")
+async def import_playlist(request: PlaylistImportRequest):
+    """
+    Import songs from a YouTube Music playlist URL into the user's playlist.
+    """
+    user_name = request.user_name
+    playlist_url = request.url
+
+    # Validate user
+    user = music_bot.get_user_from_db(user_name)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    # Extract songs from the playlist
+    songs = extract_playlist_details(playlist_url)
+    if not songs:
+        raise HTTPException(status_code=400, detail="No songs found in the playlist.")
+
+    # Add songs to the user's playlist
+    for song in songs:
+        song_obj = music_bot.get_or_create_song(title=song["title"], url=song["url"])
+        music_bot.database.add_song_to_playlist(user, song_obj)
+
+    return {"message": f"Imported {len(songs)} songs to {user_name}'s playlist."}
+
+def extract_playlist_details(playlist_url):
+    """
+    Extract song titles and URLs from a YouTube Music playlist.
+    """
+    ydl_opts = {
+        'quiet': True,
+        'extract_flat': True,
+        'skip_download': True
+    }
+    
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            playlist_info = ydl.extract_info(playlist_url, download=False)
+            songs = [
+                {"title": entry["title"], "url": entry["url"]}
+                for entry in playlist_info.get("entries", [])
+            ]
+            return songs
+    except Exception as e:
+        print(f"Error extracting playlist details: {e}")
+        raise HTTPException(status_code=400, detail="Failed to extract playlist details.")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
