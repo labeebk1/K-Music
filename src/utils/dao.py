@@ -31,14 +31,13 @@ class MusicDAO:
             return True
         return False
 
+    def get_song(self, title):
+        song = self.session.query(Song).filter_by(title=title).first()
+        return song
+
     def add_song(self, song: Song) -> None:
         self.session.add(song)
         self.session.commit()
-
-    def get_playlist(self, user: User):
-        user_id = user.id
-        user_songs = self.session.query(Song).join(Playlist).filter(Playlist.user_id == user_id).all()
-        return user_songs
 
     def add_song_to_playlist(self, user: User, song: Song) -> bool:
         playlist = self.session.query(Playlist).filter_by(user_id=user.id, song_id=song.id).first()
@@ -51,6 +50,19 @@ class MusicDAO:
             self.session.commit()
             return False
         return True
+
+    def remove_song_from_playlist(self, user: User, song: Song) -> None:
+        playlist = self.session.query(Playlist).filter_by(user_id=user.id, song_id=song.id).first()
+        if playlist:
+            self.session.delete(playlist)
+            self.session.commit()
+
+    def show_playlist(self, user):
+        user_id = user.id
+        user_songs = self.session.query(Song).join(Playlist).filter(Playlist.user_id == user_id).all()
+        playlist = [{"title": song.title, "url": song.url} for song in user_songs]
+        sorted_playlist = sorted(playlist, key=lambda x: x["title"].lower())
+        return sorted_playlist
 
     def add_song_to_song_queue(self, song: Song, user: User) -> None:
         song_item = SongQueue(

@@ -47,6 +47,9 @@ class UserRequest(BaseModel):
     password: str
 
 
+class UsernameRequest(BaseModel):
+    name: str
+
 @app.post("/play_now")
 async def play_now(request: PlayRequest):
     """
@@ -151,6 +154,42 @@ async def add_to_queue(request: PlayRequest):
     song = music_bot.get_or_create_song(title=title, url=url)
     music_bot.database.add_song_to_song_queue(song, user)
     return {"message": "Song added to queue."}
+
+@app.post("/add_to_playlist")
+async def add_to_playlist(request: PlayRequest):
+    """
+    Add a song to the user's playlist.
+    """
+    title = request.title
+    url = request.url
+    user_name = request.user_name
+    user = music_bot.get_user_from_db(user_name)
+    song = music_bot.get_or_create_song(title=title, url=url)
+    music_bot.database.add_song_to_playlist(user, song)
+    return {"message": "Song added to playlist."}
+
+@app.post("/remove_from_playlist")
+async def remove_from_playlist(request: PlayRequest):
+    """
+    Remove a song from the user's playlist.
+    """
+    title = request.title
+    url = request.url
+    user_name = request.user_name
+    user = music_bot.get_user_from_db(user_name)
+    song = music_bot.get_song(title=title)
+    music_bot.database.remove_song_from_playlist(user, song)
+    return {"message": "Song removed from playlist."}
+
+@app.post("/show_playlist")
+async def show_playlist(request: UsernameRequest):
+    """
+    Show the user's playlist.
+    """
+    user_name = request.name
+    user = music_bot.get_user_from_db(user_name)
+    playlist = music_bot.database.show_playlist(user)
+    return {"playlist": playlist}
 
 @app.post("/remove_from_queue")
 async def remove_from_queue(request: RemoveFromQueueRequest):

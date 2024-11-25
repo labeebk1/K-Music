@@ -36,6 +36,9 @@ class MusicBot(commands.Bot):
             print(f"Failed to connect to {channel.name}: {e}")
             return None
 
+    def get_song(self, title: str):
+        return self.database.get_song(title)
+
     def get_or_create_song(self, title: str, url: str) -> Song:
         """
         Get a song by URL or create it if it doesn't exist.
@@ -63,25 +66,6 @@ class MusicBot(commands.Bot):
         except Exception as e:
             print(f"Error while streaming song: {e}")
 
-
-    # async def add_to_playlist(self, ctx, user_name) -> None:
-    #     user = self.database.get_user(user_name)
-    #     song, _ = self.database.get_next_song_from_queue()
-        
-    #     song_in_playlist = self.database.add_song_to_playlist(user, song)
-    #     if song_in_playlist:
-    #         await self.send_message(ctx=ctx, message=f"{song.title} is already in {user_name}'s playlist")
-    #     else:
-    #         embed = discord.Embed(title=f"{user.name}'s Playlist", color=discord.Color.green())
-    #         embed.add_field(name="Song Added", value=song.title, inline=False)
-    #         embed.set_thumbnail(url=song.thumbnail)
-    #         await ctx.send(embed=embed)
-
-    # async def show_playlist(self, ctx) -> None:
-    #     user_name = ctx.author.name
-    #     user = self.database.get_user(user_name)
-    #     user_songs = self.database.get_playlist(user)
-    #     print(user_songs)
 
     def get_streamable_url(self, song_url):
         ydl_opts = {'format': 'bestaudio/best', 'noplaylist': True}
