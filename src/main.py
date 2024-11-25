@@ -5,12 +5,10 @@ import discord
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from dotenv import load_dotenv
 from utils import MusicBot
 
 # Load environment variables
-load_dotenv()
-DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+DISCORD_TOKEN = "OTUxNDk3MzE4NzI3ODE5MjY0.G_0Wk2.f9-8UgQsJ7Ap-EAEIqO3t37WFblxNDW3ZbPWvU"
 
 # Discord Bot Setup
 intents = discord.Intents.all()
