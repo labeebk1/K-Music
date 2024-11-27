@@ -72,11 +72,7 @@ class MusicBot(commands.Bot):
         song, user = self.database.get_first_song_from_queue()
         if song:
             voice_client = await self.connect_to_voice_channel()
-            try:
-                await self.stream_song(voice_client, song)
-            except Exception as e:
-                # Go to next song
-                self.handle_end_of_song(song)
+            await self.stream_song(voice_client, song)
         else:
             self.is_playing = False
 
@@ -95,6 +91,7 @@ class MusicBot(commands.Bot):
             voice_client.play(source, after=lambda e: self.handle_end_of_song(song))
         except Exception as e:
             print(f"Error streaming song: {e}")
+            self.database.remove_song_from_queue(song_title=song.title)
             self.is_playing = False
     
     def handle_end_of_song(self, song):
