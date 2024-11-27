@@ -91,6 +91,7 @@ class MusicBot(commands.Bot):
             voice_client.play(source, after=lambda e: self.handle_end_of_song(song))
         except Exception as e:
             print(f"Error streaming song: {e}")
+            song, _ = self.database.get_first_song_from_queue()
             self.database.remove_song_from_queue(song_title=song.title)
             self.is_playing = False
     
