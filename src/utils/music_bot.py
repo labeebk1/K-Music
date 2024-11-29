@@ -88,6 +88,13 @@ class MusicBot(commands.Bot):
                 executable="./ffmpeg.exe",
                 source=streamable_url,
             )
+
+            # Truncate the song title to 32 characters
+            nickname = song.title[:32]
+            guild = discord.utils.get(self.guilds, name=TARGET_GUILD)
+            if guild and guild.me:  # Ensure the bot is in the guild
+                await guild.me.edit(nick=nickname)
+
             voice_client.play(source, after=lambda e: self.handle_end_of_song(song))
         except Exception as e:
             print(f"Error streaming song: {e}")
