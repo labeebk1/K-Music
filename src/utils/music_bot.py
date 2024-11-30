@@ -141,6 +141,9 @@ class MusicBot(commands.Bot):
             for vc in self.voice_clients:
                 if vc.is_playing():
                     vc.stop()
+            
+            song, _ = self.database.get_first_song_from_queue()
+            self.database.remove_song_from_queue(song_title=song.title)
             self.is_playing = False
             self.skip_to_replay = False
 
